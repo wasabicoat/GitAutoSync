@@ -4,6 +4,9 @@ import threading
 import datetime
 from git_manager import GitManager
 from scheduler_manager import SchedulerManager
+import webbrowser
+import subprocess
+import platform
 
 class GitAutoSyncApp(ctk.CTk):
     def __init__(self):
@@ -131,8 +134,23 @@ class GitAutoSyncApp(ctk.CTk):
             frame.pack(fill="x", padx=5, pady=2)
             
             ctk.CTkLabel(frame, text=repo['name'], font=ctk.CTkFont(weight="bold")).pack(side="left", padx=5)
-            ctk.CTkLabel(frame, text=repo['path'], text_color="gray").pack(side="left", padx=5)
+            #ctk.CTkLabel(frame, text=repo['path'], text_color="gray").pack(side="left", padx=5) 
+            
+            # Buttons
+            if repo.get('remote_url'):
+                 ctk.CTkButton(frame, text="Web", width=50, command=lambda u=repo['remote_url']: webbrowser.open(u)).pack(side="left", padx=5)
+            
+            ctk.CTkButton(frame, text="Folder", width=50, fg_color="gray", command=lambda p=repo['path']: self.open_folder(p)).pack(side="left", padx=5)
+
             ctk.CTkLabel(frame, text=repo.get('last_status', 'Idle')).pack(side="right", padx=5)
+    
+    def open_folder(self, path):
+        if platform.system() == "Windows":
+            os.startfile(path)
+        elif platform.system() == "Darwin":
+            subprocess.call(["open", path])
+        else:
+            subprocess.call(["xdg-open", path])
 
     def manual_commit_all(self):
         threading.Thread(target=self.perform_commit_all).start()

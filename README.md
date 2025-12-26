@@ -4,16 +4,18 @@ GitAutoSync is a macOS desktop application that helps you manage multiple Git re
 
 ## Features
 
--   **Recursive Scanning**: Automatically finds all Git repositories within a selected root folder.
--   **One-Click Sync**: Commit and push changes for all found repositories at once.
+-   **Multi-Path Monitoring**: Monitor multiple separate folders for Git repositories simultaneously.
+-   **One-Click Sync**: Commit and push changes for all found repositories across all paths at once.
 -   **Automated Scheduling**: Set a timer (e.g., every 10 minutes) to automatically sync your work.
+-   **Countdown Timer**: Visual countdown to the next scheduled sync.
+-   **Quick Access**: Open repositories in your browser ("Web") or local Finder ("Folder") directly from the app.
 -   **Status Logging**: View real-time logs of commit and push operations.
 -   **Modern UI**: Built with CustomTkinter for a native macOS feel (Dark Mode supported).
 
 ## Installation
 
 ### Database / Pre-built App
-You can download the latest release from the [Releases](https://github.com/wasabicoat/GitAutoSync/releases) page (if available) or build it yourself.
+A standalone macOS application is available in the `dist` folder after building.
 
 ### Building from Source
 
@@ -48,10 +50,12 @@ You can download the latest release from the [Releases](https://github.com/wasab
 
 ## Usage
 
-1.  **Select Root Folder**: Click the top button to choose the directory where your projects are located.
-2.  **Commit Message**: Enter a custom message or use the default.
-3.  **Sync**: Click **"Auto Commit & Push NOW"** to run immediately.
-4.  **Schedule**: Enter an interval in minutes and click **"Start Scheduler"** to automate the process.
+1.  **Add Folders**: Click **"Add Folder"** to select directories containing your Git projects. You can add as many as you like.
+2.  **Repo Links**: Use the **"Web"** button to open the remote repository (e.g., GitHub) or **"Folder"** to open the local directory.
+3.  **Commit Message**: Enter a custom message or use the default.
+4.  **Sync**: Click **"Auto Commit & Push NOW"** to force a sync immediately.
+5.  **Schedule**: Enter an interval in minutes and click **"Start Scheduler"**. The countdown timer will show when the next sync will occur.
+6.  **Reset**: Click **"Reset"** to clear all monitored paths and start over.
 
 ## License
 

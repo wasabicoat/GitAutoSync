@@ -18,11 +18,21 @@ class GitManager:
                         repo = Repo(repo_path)
                         # Basic info
                         repo_name = os.path.basename(repo_path)
+                        # Not all repos have origin, handle gracefully
+                        remote_url = ""
+                        if repo.remotes and 'origin' in repo.remotes:
+                             remote_url = repo.remotes.origin.url
+                             # Convert SSH to HTTPS for browser opening if needed, or just let browser handle it/user handle it.
+                             # Simple conversion for github: git@github.com:user/repo.git -> https://github.com/user/repo
+                             if remote_url.startswith("git@"):
+                                 remote_url = remote_url.replace(":", "/").replace("git@", "https://")
+
                         self.found_repos.append({
                             'path': repo_path,
                             'name': repo_name,
                             'obj': repo,
-                            'status': 'Idle'
+                            'status': 'Idle',
+                            'remote_url': remote_url
                         })
                         # Don't recurse into .git or submodules inside this repo (simplification)
                         # dirs.remove('.git') # os.walk logic, already in ignored list usually or manually handled
