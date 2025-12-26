@@ -1,0 +1,4 @@
+customtkinter
+GitPython
+schedule
+packaging
