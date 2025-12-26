@@ -8,6 +8,7 @@ class SchedulerManager:
         self.worker_thread = None
         self.job_func = job_func
         self.interval_minutes = 1
+        self.job = None
 
     def start_scheduler(self, interval_minutes):
         """Starts the scheduler with the given interval in minutes."""
@@ -21,7 +22,7 @@ class SchedulerManager:
         schedule.clear()
         
         if self.job_func:
-            schedule.every(self.interval_minutes).minutes.do(self.job_func)
+            self.job = schedule.every(self.interval_minutes).minutes.do(self.job_func)
 
         self.worker_thread = threading.Thread(target=self._run_scheduler)
         self.worker_thread.daemon = True # Daemon thread so it closes when main app closes
@@ -31,9 +32,16 @@ class SchedulerManager:
         """Stops the scheduler."""
         self.running = False
         schedule.clear()
+        self.job = None
         if self.worker_thread:
             self.worker_thread.join(timeout=1)
             self.worker_thread = None
+
+    def get_next_run(self):
+        """Returns the datetime of the next scheduled run, or None."""
+        if self.running and self.job:
+            return self.job.next_run
+        return None
 
     def _run_scheduler(self):
         """Internal loop to run pending jobs."""

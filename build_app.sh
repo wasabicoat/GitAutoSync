@@ -1,3 +1,4 @@
 #!/bin/bash
 source venv/bin/activate
-pyinstaller --noconfirm --onedir --windowed --add-data "/Users/chupawidthwadthanakul/.gemini/antigravity/scratch/GitAutoSync/venv/lib/python3.11/site-packages/customtkinter:customtkinter" --name "GitAutoSync" main.py
+ctk_path=$(python3 -c 'import customtkinter; print(customtkinter.__path__[0])')
+pyinstaller --noconfirm --onedir --windowed --add-data "$ctk_path:customtkinter" --name "GitAutoSync" main.py

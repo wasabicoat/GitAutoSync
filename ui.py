@@ -29,6 +29,7 @@ class GitAutoSyncApp(ctk.CTk):
         self.create_log_area()
 
         self.repos = []
+        self.monitored_paths = set()
 
     def create_header(self):
         self.header_frame = ctk.CTkFrame(self)
@@ -37,8 +38,11 @@ class GitAutoSyncApp(ctk.CTk):
         self.title_label = ctk.CTkLabel(self.header_frame, text="GitAutoSync", font=ctk.CTkFont(size=20, weight="bold"))
         self.title_label.pack(side="left", padx=10, pady=10)
 
-        self.scan_btn = ctk.CTkButton(self.header_frame, text="Select Root Folder & Scan", command=self.scan_folder)
-        self.scan_btn.pack(side="right", padx=10, pady=10)
+        self.scan_btn = ctk.CTkButton(self.header_frame, text="Add Folder", command=self.add_folder)
+        self.scan_btn.pack(side="right", padx=5, pady=10)
+
+        self.clear_btn = ctk.CTkButton(self.header_frame, text="Reset", fg_color="gray", width=60, command=self.clear_paths)
+        self.clear_btn.pack(side="right", padx=5, pady=10)
 
     def create_repo_list_area(self):
         self.repo_list_frame = ctk.CTkScrollableFrame(self, label_text="Repositories Found")
@@ -71,6 +75,9 @@ class GitAutoSyncApp(ctk.CTk):
         self.toggle_schedule_btn = ctk.CTkButton(self.controls_frame, text="Start Scheduler", command=self.toggle_scheduler)
         self.toggle_schedule_btn.grid(row=1, column=2, padx=10, pady=(0, 10), sticky="e")
 
+        self.countdown_label = ctk.CTkLabel(self.controls_frame, text="Next Sync: --:--")
+        self.countdown_label.grid(row=1, column=3, padx=10, pady=(0, 10), sticky="w")
+
     def create_log_area(self):
         self.log_textbox = ctk.CTkTextbox(self, height=150)
         self.log_textbox.grid(row=3, column=0, padx=10, pady=(5, 10), sticky="ew")
@@ -81,15 +88,33 @@ class GitAutoSyncApp(ctk.CTk):
         self.log_textbox.insert("end", f"[{timestamp}] {message}\n")
         self.log_textbox.see("end")
 
-    def scan_folder(self):
+    def add_folder(self):
         folder_path = filedialog.askdirectory()
         if not folder_path:
             return
 
-        self.log(f"Scanning {folder_path}...")
-        self.repos = self.git_manager.scan_for_repos(folder_path)
-        self.log(f"Found {len(self.repos)} repositories.")
+        if folder_path in self.monitored_paths:
+             self.log(f"Already monitoring: {folder_path}")
+             return
+
+        self.monitored_paths.add(folder_path)
+        self.log(f"Added monitoring: {folder_path}")
+        self.refresh_all_repos()
+
+    def clear_paths(self):
+        self.monitored_paths.clear()
+        self.repos = []
+        self.update_repo_list()
+        self.log("Cleared all monitored paths.")
+
+    def refresh_all_repos(self):
+        self.repos = []
+        for path in self.monitored_paths:
+             self.log(f"Scanning {path}...")
+             new_repos = self.git_manager.scan_for_repos(path)
+             self.repos.extend(new_repos)
         
+        self.log(f"Total repositories found: {len(self.repos)}")
         self.update_repo_list()
 
     def update_repo_list(self):
@@ -140,6 +165,7 @@ class GitAutoSyncApp(ctk.CTk):
         if self.scheduler_manager.running:
             self.scheduler_manager.stop_scheduler()
             self.toggle_schedule_btn.configure(text="Start Scheduler", fg_color=["#3B8ED0", "#1F6AA5"]) # Default blue
+            self.countdown_label.configure(text="Next Sync: --:--")
             self.log("Scheduler stopped.")
         else:
             try:
@@ -147,5 +173,23 @@ class GitAutoSyncApp(ctk.CTk):
                 self.scheduler_manager.start_scheduler(interval)
                 self.toggle_schedule_btn.configure(text="Stop Scheduler", fg_color="red")
                 self.log(f"Scheduler started (Every {interval} mins).")
+                self.update_countdown()
             except ValueError:
                 self.log("Error: Invalid schedule interval.")
+
+    def update_countdown(self):
+        next_run = self.scheduler_manager.get_next_run()
+        if next_run:
+            now = datetime.datetime.now()
+            if next_run > now:
+                delta = next_run - now
+                # Format as MM:SS
+                minutes, seconds = divmod(delta.seconds, 60)
+                self.countdown_label.configure(text=f"Next Sync: {minutes:02}:{seconds:02}")
+            else:
+                self.countdown_label.configure(text="Next Sync: Syncing...")
+        else:
+            self.countdown_label.configure(text="Next Sync: --:--")
+        
+        if self.scheduler_manager.running:
+            self.after(1000, self.update_countdown)
