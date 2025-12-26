@@ -4,6 +4,7 @@ import threading
 import datetime
 from git_manager import GitManager
 from scheduler_manager import SchedulerManager
+from config_manager import ConfigManager
 import webbrowser
 import subprocess
 import platform
@@ -16,6 +17,7 @@ class GitAutoSyncApp(ctk.CTk):
         self.geometry("900x700")
 
         # Managers
+        self.config_manager = ConfigManager()
         self.git_manager = GitManager()
         self.scheduler_manager = SchedulerManager(job_func=self.scheduled_job_worker)
 
@@ -32,7 +34,11 @@ class GitAutoSyncApp(ctk.CTk):
         self.create_log_area()
 
         self.repos = []
-        self.monitored_paths = set()
+        self.monitored_paths = set(self.config_manager.get_paths())
+        
+        # Initial scan if paths exist
+        if self.monitored_paths:
+            self.refresh_all_repos()
 
     def create_header(self):
         self.header_frame = ctk.CTkFrame(self)
@@ -44,8 +50,10 @@ class GitAutoSyncApp(ctk.CTk):
         self.scan_btn = ctk.CTkButton(self.header_frame, text="Add Folder", command=self.add_folder)
         self.scan_btn.pack(side="right", padx=5, pady=10)
 
-        self.clear_btn = ctk.CTkButton(self.header_frame, text="Reset", fg_color="gray", width=60, command=self.clear_paths)
-        self.clear_btn.pack(side="right", padx=5, pady=10)
+        self.manage_btn = ctk.CTkButton(self.header_frame, text="Manage Paths", fg_color="gray", width=80, command=self.open_manage_paths_window)
+        self.manage_btn.pack(side="right", padx=5, pady=10)
+
+        # Removed 'Reset' button in favor of 'Manage Paths'
 
     def create_repo_list_area(self):
         self.repo_list_frame = ctk.CTkScrollableFrame(self, label_text="Repositories Found")
@@ -100,15 +108,48 @@ class GitAutoSyncApp(ctk.CTk):
              self.log(f"Already monitoring: {folder_path}")
              return
 
+        if folder_path in self.monitored_paths:
+             self.log(f"Already monitoring: {folder_path}")
+             return
+
         self.monitored_paths.add(folder_path)
+        self.config_manager.add_path(folder_path)
         self.log(f"Added monitoring: {folder_path}")
         self.refresh_all_repos()
 
-    def clear_paths(self):
-        self.monitored_paths.clear()
-        self.repos = []
-        self.update_repo_list()
-        self.log("Cleared all monitored paths.")
+    def open_manage_paths_window(self):
+        window = ctk.CTkToplevel(self)
+        window.title("Manage Paths")
+        window.geometry("500x300")
+        
+        label = ctk.CTkLabel(window, text="Monitored Paths", font=ctk.CTkFont(size=16, weight="bold"))
+        label.pack(pady=10)
+
+        scroll_frame = ctk.CTkScrollableFrame(window)
+        scroll_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+        paths = list(self.monitored_paths)
+        if not paths:
+            ctk.CTkLabel(scroll_frame, text="No paths monitored.").pack(pady=5)
+        
+        for path in paths:
+            row = ctk.CTkFrame(scroll_frame)
+            row.pack(fill="x", padx=5, pady=2)
+            ctk.CTkLabel(row, text=path).pack(side="left", padx=5)
+            # Use lambda with default arg to capture variable properly in loop
+            ctk.CTkButton(row, text="Remove", width=60, fg_color="red", command=lambda p=path, w=window: self.remove_path_from_window(p, w)).pack(side="right", padx=5)
+
+    def remove_path_from_window(self, path, window):
+        if path in self.monitored_paths:
+            self.monitored_paths.remove(path)
+            self.config_manager.remove_path(path)
+            self.log(f"Removed path: {path}")
+            self.refresh_all_repos()
+            
+            # Close and reopen to refresh list or just update widgets (simpler to just close for now or refresh parent)
+            # For better UX, we could just remove the row, but redrawing the window is easiest for this iteration
+            window.destroy()
+            self.open_manage_paths_window()
 
     def refresh_all_repos(self):
         self.repos = []
